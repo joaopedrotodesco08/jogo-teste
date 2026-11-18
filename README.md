@@ -55,3 +55,16 @@ Abra o arquivo `index.html` em qualquer navegador web moderno:
 open /Users/joaopedro/.gemini/antigravity/scratch/space-maze/index.html
 ```
 Ou jogue diretamente pelo visualizador de artefatos interativos do Antigravity!
+
+---
+
+## 🤖 Desenvolvimento com IA & Aprendizados
+
+Como estudante do **2º período de Ciência de Dados e Inteligência Artificial**, este projeto foi desenvolvido unindo fundamentos de programação e ciência da computação com o uso de **Inteligência Artificial como copiloto de desenvolvimento**.
+
+### Principais competências e conceitos explorados:
+- **Algoritmos de Busca em Grafos (BFS):** Aplicação prática do *Breadth-First Search* para cálculo de menor caminho em tempo real na perseguição do inimigo Ares.
+- **Heurísticas e Comportamentos Autônomos:** Modelagem de perfis distintos de comportamento para cada agente (interceptação preditiva no Nova e patrulha por detecção no Comet).
+- **Estruturas de Dados e Game Loop:** Gerenciamento de matriz de tiles, fila de comandos (buffer) e renderização a 60 FPS com HTML5 Canvas.
+- **Pair Programming com IA:** Uso de IA para acelerar a prototipagem, estruturação do código em JavaScript nativo e sintetização de efeitos sonoros com a Web Audio API.
+
