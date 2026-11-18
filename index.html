@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cosmic Escape: Star Maze</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      touch-action: manipulation;
+    }
+
+    .font-orbitron {
+      font-family: 'Orbitron', monospace, sans-serif;
+    }
+
+    .neon-text-blue {
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+
+    .neon-text-gold {
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.8), 0 0 20px rgba(250, 204, 21, 0.4);
+    }
+
+    .neon-box-blue {
+      box-shadow: 0 0 15px rgba(14, 165, 233, 0.3), inset 0 0 15px rgba(14, 165, 233, 0.2);
+    }
+
+    .dpad-btn {
+      transition: all 0.08s ease;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .dpad-btn:active {
+      transform: scale(0.92);
+      background: rgba(56, 189, 248, 0.35);
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Custom canvas container */
+    #game-canvas {
+      display: block;
+      margin: 0 auto;
+      border-radius: 8px;
+      box-shadow: 0 0 25px rgba(2, 132, 199, 0.35), 0 0 60px rgba(15, 23, 42, 0.8);
+    }
+  </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 select-none overflow-x-hidden">
+
+  <!-- Main Game Container -->
+  <div class="w-full max-w-2xl flex flex-col items-center">
+
+    <!-- Header & HUD -->
+    <header class="w-full bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3 mb-2 neon-box-blue backdrop-blur-md">
+      <div class="flex items-center justify-between gap-2">
+        <!-- Brand & Title -->
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-400 flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8L12 2Z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-orbitron font-black tracking-wider text-white neon-text-blue leading-none">
+              COSMIC ESCAPE
+            </h1>
+            <p class="text-[10px] text-cyan-400 font-mono tracking-widest uppercase">Star Maze Protocol</p>
+          </div>
+        </div>
+
+        <!-- Lives / Vidas -->
+        <div class="flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
+          <span class="text-xs text-slate-400 font-bold uppercase mr-1">Vidas:</span>
+          <div id="lives-container" class="flex gap-1.5 items-center">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Audio Toggle & Pause Button -->
+        <div class="flex items-center gap-1.5">
+          <button id="btn-audio" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 transition-colors" title="Ligar/Desligar Som">
+            <svg id="icon-sound-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            </svg>
+            <svg id="icon-sound-off" class="w-5 h-5 hidden text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+            </svg>
+          </button>
+          <button id="btn-pause" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors" title="Pausar Jogo (P)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Bar (Score, Stars collected, Progress) -->
+      <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-800 text-center font-mono">
+        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+          <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Pontuação</span>
+          <span id="score-display" class="text-sm sm:text-base font-bold text-amber-300 font-orbitron">0</span>
+        </div>
+        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+          <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Estrelas</span>
+          <span id="stars-display" class="text-sm sm:text-base font-bold text-cyan-300 font-orbitron">0 / 169</span>
+        </div>
+        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+          <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Recorde</span>
+          <span id="highscore-display" class="text-sm sm:text-base font-bold text-emerald-400 font-orbitron">0</span>
+        </div>
+      </div>
+
+      <!-- Star Collection Progress Bar -->
+      <div class="w-full bg-slate-950 rounded-full h-1.5 mt-2 overflow-hidden border border-slate-800">
+        <div id="stars-progress" class="bg-gradient-to-r from-cyan-500 via-amber-400 to-yellow-300 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </header>
+
+    <!-- Canvas Wrapper with Overlays -->
+    <div class="relative w-full flex justify-center items-center">
+      <canvas id="game-canvas" width="546" height="572" class="max-w-full h-auto bg-slate-950 border-2 border-cyan-500/40"></canvas>
+
+      <!-- Overlay: Start / Menu Screen -->
+      <div id="overlay-start" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center z-10 transition-opacity">
+        <div class="w-16 h-16 mb-3 rounded-2xl bg-cyan-950 border border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.7)] animate-pulse">
+          <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8L12 2Z"/>
+          </svg>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-orbitron font-black text-white neon-text-blue mb-1">COSMIC ESCAPE</h2>
+        <p class="text-cyan-300 text-sm font-semibold mb-4 max-w-sm">
+          Pilote a <strong class="text-white underline decoration-cyan-400">nave branca</strong> pelo labirinto estelar, desvie dos <strong class="text-red-400">3 foguetes</strong> e colete todas as estrelas!
+        </p>
+
+        <!-- Rules card -->
+        <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 mb-5 max-w-sm w-full text-left text-xs space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-[0_0_8px_#fff]">🚀</span>
+            <span class="text-slate-200"><strong>Nave Branca:</strong> Você tem <strong>3 vidas</strong>.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_8px_#ef4444]">🔥</span>
+            <span class="text-slate-200"><strong>3 Foguetes Inimigos:</strong> Ares (vermelho), Nova (laranja) e Comet (roxo).</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-full bg-yellow-400 flex items-center justify-center shadow-[0_0_8px_#facc15]">⭐</span>
+            <span class="text-slate-200"><strong>Objetivo:</strong> Colete todas as <strong>169 estrelas</strong> para vencer!</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-full bg-cyan-400 flex items-center justify-center shadow-[0_0_8px_#38bdf8]">🌀</span>
+            <span class="text-slate-200"><strong>Túneis de Dobra:</strong> Use as saídas laterais para escapar!</span>
+          </div>
+        </div>
+
+        <button id="btn-start-game" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-extrabold text-sm sm:text-base rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.6)] transform hover:scale-105 active:scale-95 transition-all">
+          INICIAR MISSÃO (ESPAÇO)
+        </button>
+      </div>
+
+      <!-- Overlay: Game Over Screen -->
+      <div id="overlay-gameover" class="hidden absolute inset-0 bg-red-950/90 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center z-10">
+        <div class="w-16 h-16 mb-2 rounded-2xl bg-red-900/60 border border-red-500 flex items-center justify-center shadow-[0_0_25px_rgba(239,68,68,0.7)]">
+          <span class="text-3xl">💥</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-orbitron font-black text-red-400 mb-1">NAVE DESTRUÍDA</h2>
+        <p class="text-slate-300 text-sm mb-4">Você perdeu todas as 3 vidas no labirinto.</p>
+
+        <div class="bg-slate-900/90 border border-red-900/60 rounded-xl p-4 mb-5 w-64 text-sm font-mono space-y-2">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Pontuação:</span>
+            <span id="final-score" class="font-bold text-amber-300 font-orbitron">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Estrelas:</span>
+            <span id="final-stars" class="font-bold text-cyan-300 font-orbitron">0</span>
+          </div>
+        </div>
+
+        <button id="btn-restart-game" class="px-8 py-3 bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-400 hover:to-amber-400 text-slate-950 font-orbitron font-bold text-sm sm:text-base rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.6)] transform hover:scale-105 active:scale-95 transition-all">
+          TENTAR NOVAMENTE
+        </button>
+      </div>
+
+      <!-- Overlay: Victory Screen -->
+      <div id="overlay-victory" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center z-10">
+        <div class="w-16 h-16 mb-2 rounded-2xl bg-amber-950/80 border border-amber-400 flex items-center justify-center shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce">
+          <span class="text-3xl">👑</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-orbitron font-black text-amber-300 neon-text-gold mb-1">MISSÃO CUMPRIDA!</h2>
+        <p class="text-emerald-300 text-sm font-semibold mb-4">Você coletou todas as 169 estrelas e despistou os 3 foguetes!</p>
+
+        <div class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-4 mb-5 w-72 text-sm font-mono space-y-2">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Pontos Estelares:</span>
+            <span id="vic-score" class="font-bold text-amber-300 font-orbitron">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Vidas Restantes:</span>
+            <span id="vic-lives" class="font-bold text-cyan-300 font-orbitron">3</span>
+          </div>
+          <div class="flex justify-between border-t border-slate-800 pt-1">
+            <span class="text-slate-200 font-bold">TOTAL FINAL:</span>
+            <span id="vic-total" class="font-bold text-emerald-400 font-orbitron text-base">0</span>
+          </div>
+        </div>
+
+        <button id="btn-play-again" class="px-8 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-orbitron font-black text-sm sm:text-base rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.6)] transform hover:scale-105 active:scale-95 transition-all">
+          JOGAR NOVAMENTE
+        </button>
+      </div>
+
+      <!-- Overlay: Pause Screen -->
+      <div id="overlay-pause" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center p-6 text-center z-10">
+        <h2 class="text-2xl font-orbitron font-black text-cyan-400 neon-text-blue mb-2">JOGO PAUSADO</h2>
+        <p class="text-slate-300 text-xs mb-4">Pressione [P] ou clique abaixo para continuar.</p>
+        <button id="btn-resume-game" class="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold text-sm rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+          CONTINUAR
+        </button>
+      </div>
+    </div>
+
+    <!-- Virtual D-Pad & Mobile Controls -->
+    <div class="w-full mt-3 flex items-center justify-between gap-4 px-2 select-none">
+      <!-- Keyboard instructions -->
+      <div class="hidden sm:flex flex-col text-xs text-slate-400 font-mono space-y-1">
+        <div class="flex items-center gap-1.5">
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">W/A/S/D</span>
+          <span>ou</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Setas</span>
+          <span>Mover a Nave</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">P</span>
+          <span>Pausar</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">M</span>
+          <span>Mudo</span>
+        </div>
+      </div>
+
+      <!-- On-screen Touch D-Pad -->
+      <div class="flex flex-col items-center mx-auto sm:mx-0">
+        <button id="dpad-up" class="dpad-btn w-12 h-11 rounded-t-xl flex items-center justify-center text-cyan-300">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="dpad-left" class="dpad-btn w-11 h-11 rounded-l-xl flex items-center justify-center text-cyan-300">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="w-8 h-8 rounded-full bg-slate-900 border border-cyan-500/20 flex items-center justify-center">
+            <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></div>
+          </div>
+          <button id="dpad-right" class="dpad-btn w-11 h-11 rounded-r-xl flex items-center justify-center text-cyan-300">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <button id="dpad-down" class="dpad-btn w-12 h-11 rounded-b-xl flex items-center justify-center text-cyan-300">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       MAZE MAP SPECIFICATION
+       # = Neon Wall
+       . = Normal Star (+10 pts)
+       * = Super Star / Pulsar (+50 pts, slow rockets)
+       P = Player Start (Nave Branca)
+       1 = Rocket Ares (Red)
+       2 = Rocket Nova (Orange)
+       3 = Rocket Comet (Purple)
+       = = Rocket Bay Door
+       T = Warp Tunnel
+       ========================================================================== */
+    const MAZE_MAP = [
+      "#####################",
+      "#*........#........*#",
+      "#.###.###.#.###.###.#",
+      "#.###.###.#.###.###.#",
+      "#.........#.........#",
+      "#.###.#.#####.#.###.#",
+      "#.....#...#...#.....#",
+      "#####.### # ###.#####",
+      "#####.#       #.#####",
+      "#####.# ##=## #.#####",
+      "T     . #123# .     T",
+      "#####.# ##### #.#####",
+      "#####.#       #.#####",
+      "#####.# ##### #.#####",
+      "#.........#.........#",
+      "#.###.###.#.###.###.#",
+      "#...#.....P.....#...#",
+      "###.#.#.#####.#.#.###",
+      "#.....#...#...#.....#",
+      "#.#######.#.#######.#",
+      "#*........#........*#",
+      "#####################"
+    ];
+
+    const ROWS = MAZE_MAP.length;
+    const COLS = MAZE_MAP[0].length;
+    const TILE_SIZE = 26; // 21 * 26 = 546px width, 22 * 26 = 572px height
+
+    // Directions
+    const DIR = {
+      NONE:  { x: 0, y: 0, angle: 0 },
+      UP:    { x: 0, y: -1, angle: -Math.PI / 2 },
+      DOWN:  { x: 0, y: 1, angle: Math.PI / 2 },
+      LEFT:  { x: -1, y: 0, angle: Math.PI },
+      RIGHT: { x: 1, y: 0, angle: 0 }
+    };
+
+    /* ==========================================================================
+       AUDIO SYNTHESIZER (Pure Web Audio API)
+       ========================================================================== */
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggleMute() {
+        this.muted = !this.muted;
+        return this.muted;
+      }
+
+      playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      playStar() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(900, now);
+          osc.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } catch (e) {}
+      }
+
+      playSuperStar() {
+        if (this.muted) return;
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'sine', 0.15, 0.2), i * 60);
+        });
+      }
+
+      playHit() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } catch (e) {}
+      }
+
+      playVictory() {
+        if (this.muted) return;
+        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+        notes.forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'triangle', 0.25, 0.25), i * 110);
+        });
+      }
+
+      playGameOver() {
+        if (this.muted) return;
+        const notes = [440, 392, 349.23, 293.66, 220];
+        notes.forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'sawtooth', 0.2, 0.18), i * 140);
+        });
+      }
+    }
+
+    const sound = new SoundFX();
+
+    /* ==========================================================================
+       GAME ENGINE CLASS
+       ========================================================================== */
+    class GameEngine {
+      constructor() {
+        this.canvas = document.getElementById('game-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        this.score = 0;
+        this.highScore = parseInt(localStorage.getItem('cosmic_maze_highscore') || '0', 10);
+        this.totalStars = 0;
+        this.collectedStars = 0;
+        this.state = 'START'; // 'START' | 'PLAYING' | 'PAUSED' | 'GAMEOVER' | 'VICTORY'
+
+        this.screenShake = 0;
+        this.superTimer = 0; // Duration of super star mode
+
+        // Stars & grid
+        this.stars = new Map(); // key 'r,c' => { r, c, x, y, isSuper }
+        this.walkable = new Set();
+        this.doorTile = { r: 9, c: 10 };
+
+        // Entities
+        this.player = null;
+        this.rockets = [];
+        this.particles = [];
+        this.bgStars = [];
+
+        // Parse maze layout
+        this.parseMap();
+        this.initBackgroundStars();
+        this.setupEventListeners();
+        this.updateHUD();
+
+        // Animation loop
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.gameLoop(t));
+      }
+
+      parseMap() {
+        this.stars.clear();
+        this.walkable.clear();
+        this.totalStars = 0;
+
+        let playerSpawn = { r: 16, c: 10 };
+        let rocketSpawns = [];
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const ch = MAZE_MAP[r][c];
+            const x = c * TILE_SIZE + TILE_SIZE / 2;
+            const y = r * TILE_SIZE + TILE_SIZE / 2;
+
+            if (ch !== '#') {
+              this.walkable.add(`${r},${c}`);
+            }
+
+            if (ch === '.' || ch === '*') {
+              const isSuper = (ch === '*');
+              this.stars.set(`${r},${c}`, { r, c, x, y, isSuper });
+              this.totalStars++;
+            } else if (ch === 'P') {
+              playerSpawn = { r, c };
+            } else if (ch === '1' || ch === '2' || ch === '3') {
+              rocketSpawns.push({ id: ch, r, c, x, y });
+            }
+          }
+        }
+
+        // Initialize Player (Nave Branca)
+        this.player = {
+          startR: playerSpawn.r,
+          startC: playerSpawn.c,
+          r: playerSpawn.r,
+          c: playerSpawn.c,
+          x: playerSpawn.c * TILE_SIZE + TILE_SIZE / 2,
+          y: playerSpawn.r * TILE_SIZE + TILE_SIZE / 2,
+          dir: DIR.NONE,
+          nextDir: DIR.NONE,
+          speed: 135, // pixels per second
+          lives: 3,
+          invulnerableTimer: 0,
+          angle: 0
+        };
+
+        // Initialize 3 Rockets (Foguetes)
+        // 1: Ares (Red, Chaser)
+        // 2: Nova (Orange, Flanker)
+        // 3: Comet (Purple, Scout/Patrol)
+        const rocketConfigs = [
+          {
+            id: '1',
+            name: 'Ares',
+            color: '#ef4444',
+            trailColor: 'rgba(239, 68, 68, 0.6)',
+            speed: 120,
+            delay: 1.0,
+            ai: 'chaser'
+          },
+          {
+            id: '2',
+            name: 'Nova',
+            color: '#f97316',
+            trailColor: 'rgba(249, 115, 22, 0.6)',
+            speed: 114,
+            delay: 3.2,
+            ai: 'flanker'
+          },
+          {
+            id: '3',
+            name: 'Comet',
+            color: '#a855f7',
+            trailColor: 'rgba(168, 85, 247, 0.6)',
+            speed: 110,
+            delay: 5.5,
+            ai: 'scout'
+          }
+        ];
+
+        this.rockets = rocketConfigs.map((cfg, i) => {
+          const spawn = rocketSpawns[i] || { r: 10, c: 9 + i };
+          return {
+            ...cfg,
+            r: spawn.r,
+            c: spawn.c,
+            x: spawn.c * TILE_SIZE + TILE_SIZE / 2,
+            y: spawn.r * TILE_SIZE + TILE_SIZE / 2,
+            startX: spawn.c * TILE_SIZE + TILE_SIZE / 2,
+            startY: spawn.r * TILE_SIZE + TILE_SIZE / 2,
+            startR: spawn.r,
+            startC: spawn.c,
+            dir: DIR.UP,
+            angle: -Math.PI / 2,
+            state: 'in_base', // 'in_base' | 'leaving' | 'maze' | 'eaten'
+            timer: cfg.delay
+          };
+        });
+      }
+
+      initBackgroundStars() {
+        this.bgStars = [];
+        for (let i = 0; i < 70; i++) {
+          this.bgStars.push({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height,
+            size: Math.random() * 1.5 + 0.5,
+            alpha: Math.random() * 0.7 + 0.3,
+            blinkSpeed: Math.random() * 2 + 1
+          });
+        }
+      }
+
+      resetGame() {
+        this.score = 0;
+        this.collectedStars = 0;
+        this.superTimer = 0;
+        this.parseMap();
+        this.player.lives = 3;
+        this.player.invulnerableTimer = 2.0;
+        this.updateHUD();
+      }
+
+      resetRoundAfterHit() {
+        // Respawn player
+        this.player.r = this.player.startR;
+        this.player.c = this.player.startC;
+        this.player.x = this.player.c * TILE_SIZE + TILE_SIZE / 2;
+        this.player.y = this.player.r * TILE_SIZE + TILE_SIZE / 2;
+        this.player.dir = DIR.NONE;
+        this.player.nextDir = DIR.NONE;
+        this.player.angle = 0;
+        this.player.invulnerableTimer = 3.0; // 3 seconds shield
+
+        // Reset rockets to base
+        this.rockets.forEach(r => {
+          r.r = r.startR;
+          r.c = r.startC;
+          r.x = r.startX;
+          r.y = r.startY;
+          r.dir = DIR.UP;
+          r.angle = -Math.PI / 2;
+          r.state = 'in_base';
+          r.timer = r.delay;
+        });
+      }
+
+      /* ==========================================================================
+         PATHFINDING & AI (Shortest path on grid)
+         ========================================================================== */
+      isWalkable(r, c, isRocket = false) {
+        if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+        const ch = MAZE_MAP[r][c];
+        if (ch === '#') return false;
+        if (ch === '=' && !isRocket) return false; // Player cannot enter rocket door
+        return true;
+      }
+
+      getNeighbors(r, c, isRocket = false) {
+        const neighbors = [];
+        const directions = [
+          { dir: DIR.UP, r: r - 1, c: c },
+          { dir: DIR.DOWN, r: r + 1, c: c },
+          { dir: DIR.LEFT, r: r, c: c - 1 },
+          { dir: DIR.RIGHT, r: r, c: c + 1 }
+        ];
+
+        // Handle tunnel wrap
+        directions.forEach(n => {
+          if (c === 0 && n.dir === DIR.LEFT) n.c = COLS - 1;
+          if (c === COLS - 1 && n.dir === DIR.RIGHT) n.c = 0;
+          if (this.isWalkable(n.r, n.c, isRocket)) {
+            neighbors.push(n);
+          }
+        });
+
+        return neighbors;
+      }
+
+      // BFS distance to target tile
+      bfsNextMove(startR, startC, targetR, targetC, currentDir) {
+        const neighbors = this.getNeighbors(startR, startC, true);
+        if (neighbors.length === 0) return DIR.NONE;
+
+        // Prevent reversing 180 deg immediately unless it's a dead end
+        const opposite = {
+          [DIR.UP]: DIR.DOWN,
+          [DIR.DOWN]: DIR.UP,
+          [DIR.LEFT]: DIR.RIGHT,
+          [DIR.RIGHT]: DIR.LEFT
+        }[currentDir];
+
+        const validCandidates = neighbors.filter(n => neighbors.length === 1 || n.dir !== opposite);
+
+        let bestDir = validCandidates[0].dir;
+        let minDistance = Infinity;
+
+        // Pick neighbor with minimal Euclidean distance to target
+        validCandidates.forEach(n => {
+          const dist = Math.hypot(n.r - targetR, n.c - targetC);
+          if (dist < minDistance) {
+            minDistance = dist;
+            bestDir = n.dir;
+          }
+        });
+
+        return bestDir;
+      }
+
+      /* ==========================================================================
+         UPDATE LOGIC
+         ========================================================================== */
+      update(dt) {
+        if (this.state !== 'PLAYING') return;
+
+        // Screen shake decay
+        if (this.screenShake > 0) {
+          this.screenShake = Math.max(0, this.screenShake - dt * 25);
+        }
+
+        // Super Star timer
+        if (this.superTimer > 0) {
+          this.superTimer -= dt;
+        }
+
+        // Player update
+        this.updatePlayer(dt);
+
+        // Rockets update
+        this.updateRockets(dt);
+
+        // Particle update
+        this.updateParticles(dt);
+
+        // Check star collection
+        this.checkStarCollection();
+
+        // Check collision between player and rockets
+        this.checkCollisions();
+      }
+
+      updatePlayer(dt) {
+        const p = this.player;
+
+        if (p.invulnerableTimer > 0) {
+          p.invulnerableTimer = Math.max(0, p.invulnerableTimer - dt);
+        }
+
+        // Current tile coordinates
+        const curC = Math.floor(p.x / TILE_SIZE);
+        const curR = Math.floor(p.y / TILE_SIZE);
+        p.r = curR;
+        p.c = curC;
+
+        const tileCenterX = curC * TILE_SIZE + TILE_SIZE / 2;
+        const tileCenterY = curR * TILE_SIZE + TILE_SIZE / 2;
+
+        // Try changing direction if queued
+        if (p.nextDir !== p.dir && p.nextDir !== DIR.NONE) {
+          // Can reverse 180 degrees immediately
+          if (p.nextDir.x === -p.dir.x && p.nextDir.y === -p.dir.y) {
+            p.dir = p.nextDir;
+            p.angle = p.dir.angle;
+          } else {
+            // Check if near tile center to turn 90 degrees
+            const distToCenter = Math.hypot(p.x - tileCenterX, p.y - tileCenterY);
+            if (distToCenter < p.speed * dt * 1.5 || distToCenter < 6) {
+              const targetR = curR + p.nextDir.y;
+              let targetC = curC + p.nextDir.x;
+              if (curC === 0 && p.nextDir === DIR.LEFT) targetC = COLS - 1;
+              if (curC === COLS - 1 && p.nextDir === DIR.RIGHT) targetC = 0;
+
+              if (this.isWalkable(targetR, targetC, false)) {
+                p.x = tileCenterX;
+                p.y = tileCenterY;
+                p.dir = p.nextDir;
+                p.angle = p.dir.angle;
+              }
+            }
+          }
+        }
+
+        // Move in current direction
+        if (p.dir !== DIR.NONE) {
+          const moveDist = p.speed * dt;
+          const nextX = p.x + p.dir.x * moveDist;
+          const nextY = p.y + p.dir.y * moveDist;
+
+          // Wall check ahead
+          const checkAheadDist = TILE_SIZE / 2 + 1;
+          const lookaheadX = p.x + p.dir.x * checkAheadDist;
+          const lookaheadY = p.y + p.dir.y * checkAheadDist;
+          const lookR = Math.floor(lookaheadY / TILE_SIZE);
+          let lookC = Math.floor(lookaheadX / TILE_SIZE);
+
+          // Warp tunnel wrap
+          if (curC === 0 && p.dir === DIR.LEFT && p.x < -TILE_SIZE / 2) {
+            p.x = COLS * TILE_SIZE + TILE_SIZE / 2;
+          } else if (curC === COLS - 1 && p.dir === DIR.RIGHT && p.x > COLS * TILE_SIZE + TILE_SIZE / 2) {
+            p.x = -TILE_SIZE / 2;
+          } else {
+            if (this.isWalkable(lookR, lookC, false)) {
+              p.x = nextX;
+              p.y = nextY;
+            } else {
+              // Snap to center and stop
+              if (p.dir === DIR.LEFT || p.dir === DIR.RIGHT) {
+                if (Math.abs(p.x - tileCenterX) < moveDist) p.x = tileCenterX;
+              }
+              if (p.dir === DIR.UP || p.dir === DIR.DOWN) {
+                if (Math.abs(p.y - tileCenterY) < moveDist) p.y = tileCenterY;
+              }
+              p.dir = DIR.NONE;
+            }
+          }
+
+          // Add thruster particles
+          if (Math.random() < 0.6) {
+            const angleOffset = p.angle + Math.PI;
+            this.particles.push({
+              x: p.x - Math.cos(p.angle) * 8,
+              y: p.y - Math.sin(p.angle) * 8,
+              vx: Math.cos(angleOffset + (Math.random() - 0.5) * 0.5) * (Math.random() * 40 + 30),
+              vy: Math.sin(angleOffset + (Math.random() - 0.5) * 0.5) * (Math.random() * 40 + 30),
+              color: Math.random() < 0.5 ? '#38bdf8' : '#ffffff',
+              size: Math.random() * 2.5 + 1.2,
+              alpha: 0.9,
+              life: 0.25
+            });
+          }
+        }
+      }
+
+      updateRockets(dt) {
+        const isFrightened = this.superTimer > 0;
+
+        this.rockets.forEach(rk => {
+          // Inside base timer countdown
+          if (rk.state === 'in_base') {
+            rk.timer -= dt;
+            if (rk.timer <= 0) {
+              rk.state = 'leaving';
+            }
+            return;
+          }
+
+          // Leaving the base through door '=' at (9, 10)
+          if (rk.state === 'leaving') {
+            const doorX = this.doorTile.c * TILE_SIZE + TILE_SIZE / 2;
+            const doorY = (this.doorTile.r - 1) * TILE_SIZE + TILE_SIZE / 2;
+
+            const dx = doorX - rk.x;
+            const dy = doorY - rk.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 3) {
+              rk.x = doorX;
+              rk.y = doorY;
+              rk.state = 'maze';
+              rk.dir = DIR.LEFT;
+            } else {
+              rk.x += (dx / dist) * (rk.speed * 0.8) * dt;
+              rk.y += (dy / dist) * (rk.speed * 0.8) * dt;
+              rk.angle = Math.atan2(dy, dx);
+            }
+            return;
+          }
+
+          // In maze navigation
+          const curC = Math.floor(rk.x / TILE_SIZE);
+          const curR = Math.floor(rk.y / TILE_SIZE);
+          rk.r = curR;
+          rk.c = curC;
+
+          const tileCenterX = curC * TILE_SIZE + TILE_SIZE / 2;
+          const tileCenterY = curR * TILE_SIZE + TILE_SIZE / 2;
+
+          // Check if at tile center to make turning decision
+          const distToCenter = Math.hypot(rk.x - tileCenterX, rk.y - tileCenterY);
+          const currentSpeed = isFrightened ? rk.speed * 0.55 : rk.speed;
+
+          if (distToCenter < currentSpeed * dt * 1.5 || distToCenter < 4) {
+            rk.x = tileCenterX;
+            rk.y = tileCenterY;
+
+            // Target calculation based on personality
+            let targetR = this.player.r;
+            let targetC = this.player.c;
+
+            if (isFrightened) {
+              // Run away to opposite corners
+              targetR = (rk.id === '1') ? 1 : 20;
+              targetC = (rk.id === '1') ? 1 : 19;
+            } else if (rk.ai === 'flanker') {
+              // Nova: Targets 3 tiles ahead of player
+              targetR = this.player.r + this.player.dir.y * 3;
+              targetC = this.player.c + this.player.dir.x * 3;
+            } else if (rk.ai === 'scout') {
+              // Comet: If near player chase, else wander
+              const d = Math.hypot(rk.r - this.player.r, rk.c - this.player.c);
+              if (d > 6) {
+                targetR = Math.sin(performance.now() * 0.001) > 0 ? 1 : 20;
+                targetC = Math.cos(performance.now() * 0.001) > 0 ? 1 : 19;
+              }
+            }
+
+            rk.dir = this.bfsNextMove(curR, curC, targetR, targetC, rk.dir);
+            rk.angle = rk.dir.angle;
+          }
+
+          // Move rocket
+          rk.x += rk.dir.x * currentSpeed * dt;
+          rk.y += rk.dir.y * currentSpeed * dt;
+
+          // Warp tunnel wrap
+          if (curC === 0 && rk.dir === DIR.LEFT && rk.x < -TILE_SIZE / 2) {
+            rk.x = COLS * TILE_SIZE + TILE_SIZE / 2;
+          } else if (curC === COLS - 1 && rk.dir === DIR.RIGHT && rk.x > COLS * TILE_SIZE + TILE_SIZE / 2) {
+            rk.x = -TILE_SIZE / 2;
+          }
+
+          // Thruster trail particles
+          if (Math.random() < 0.4) {
+            this.particles.push({
+              x: rk.x - Math.cos(rk.angle) * 7,
+              y: rk.y - Math.sin(rk.angle) * 7,
+              vx: -Math.cos(rk.angle) * 30 + (Math.random() - 0.5) * 15,
+              vy: -Math.sin(rk.angle) * 30 + (Math.random() - 0.5) * 15,
+              color: isFrightened ? '#38bdf8' : rk.color,
+              size: Math.random() * 2 + 1,
+              alpha: 0.8,
+              life: 0.2
+            });
+          }
+        });
+      }
+
+      checkStarCollection() {
+        const key = `${this.player.r},${this.player.c}`;
+        if (this.stars.has(key)) {
+          const star = this.stars.get(key);
+          this.stars.delete(key);
+          this.collectedStars++;
+
+          if (star.isSuper) {
+            this.score += 50;
+            this.superTimer = 6.0; // 6 seconds of rocket slowdown!
+            sound.playSuperStar();
+            this.createExplosion(star.x, star.y, '#facc15', 24);
+          } else {
+            this.score += 10;
+            sound.playStar();
+            this.createExplosion(star.x, star.y, '#fef08a', 8);
+          }
+
+          if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('cosmic_maze_highscore', this.highScore.toString());
+          }
+
+          this.updateHUD();
+
+          // Victory condition: all stars collected!
+          if (this.stars.size === 0) {
+            this.triggerVictory();
+          }
+        }
+      }
+
+      checkCollisions() {
+        if (this.player.invulnerableTimer > 0) return;
+
+        const isFrightened = this.superTimer > 0;
+
+        for (let rk of this.rockets) {
+          if (rk.state !== 'maze') continue;
+
+          const dist = Math.hypot(this.player.x - rk.x, this.player.y - rk.y);
+          if (dist < TILE_SIZE * 0.72) {
+            if (isFrightened) {
+              // Rocket defeated by player!
+              this.score += 200;
+              this.createExplosion(rk.x, rk.y, rk.color, 35);
+              sound.playStar();
+
+              // Reset this rocket to base
+              rk.r = rk.startR;
+              rk.c = rk.startC;
+              rk.x = rk.startX;
+              rk.y = rk.startY;
+              rk.state = 'in_base';
+              rk.timer = 4.0;
+              this.updateHUD();
+            } else {
+              // Player hit!
+              this.playerHit();
+              break;
+            }
+          }
+        }
+      }
+
+      playerHit() {
+        this.player.lives--;
+        this.screenShake = 12;
+        sound.playHit();
+        this.createExplosion(this.player.x, this.player.y, '#ffffff', 40);
+        this.createExplosion(this.player.x, this.player.y, '#38bdf8', 25);
+        this.updateHUD();
+
+        if (this.player.lives <= 0) {
+          this.triggerGameOver();
+        } else {
+          this.resetRoundAfterHit();
+        }
+      }
+
+      createExplosion(x, y, color, count = 20) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 90 + 30;
+          this.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: color,
+            size: Math.random() * 3 + 1.5,
+            alpha: 1,
+            life: Math.random() * 0.4 + 0.2
+          });
+        }
+      }
+
+      updateParticles(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          p.alpha = Math.max(0, p.life * 2.5);
+          if (p.life <= 0) {
+            this.particles.splice(i, 1);
+          }
+        }
+      }
+
+      triggerGameOver() {
+        this.state = 'GAMEOVER';
+        sound.playGameOver();
+        document.getElementById('final-score').innerText = this.score;
+        document.getElementById('final-stars').innerText = `${this.collectedStars} / ${this.totalStars}`;
+        document.getElementById('overlay-gameover').classList.remove('hidden');
+      }
+
+      triggerVictory() {
+        this.state = 'VICTORY';
+        sound.playVictory();
+        const lifeBonus = this.player.lives * 500;
+        const totalFinal = this.score + lifeBonus;
+        document.getElementById('vic-score').innerText = this.score;
+        document.getElementById('vic-lives').innerText = `${this.player.lives} (+${lifeBonus} pts)`;
+        document.getElementById('vic-total').innerText = totalFinal;
+        document.getElementById('overlay-victory').classList.remove('hidden');
+      }
+
+      updateHUD() {
+        // Lives rendering
+        const livesContainer = document.getElementById('lives-container');
+        livesContainer.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+          const active = i < this.player.lives;
+          const shipSvg = `
+            <svg class="w-4 h-4 ${active ? 'text-white drop-shadow-[0_0_5px_#fff]' : 'text-slate-800'}" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8L12 2Z"/>
+            </svg>
+          `;
+          livesContainer.innerHTML += shipSvg;
+        }
+
+        // Stats
+        document.getElementById('score-display').innerText = this.score;
+        document.getElementById('stars-display').innerText = `${this.collectedStars} / ${this.totalStars}`;
+        document.getElementById('highscore-display').innerText = this.highScore;
+
+        const pct = this.totalStars > 0 ? (this.collectedStars / this.totalStars) * 100 : 0;
+        document.getElementById('stars-progress').style.width = `${pct}%`;
+      }
+
+      /* ==========================================================================
+         RENDERING LOGIC
+         ========================================================================== */
+      draw() {
+        const ctx = this.ctx;
+        ctx.save();
+
+        // Screen shake
+        if (this.screenShake > 0) {
+          const shakeX = (Math.random() - 0.5) * this.screenShake;
+          const shakeY = (Math.random() - 0.5) * this.screenShake;
+          ctx.translate(shakeX, shakeY);
+        }
+
+        // Clear canvas with deep space gradient
+        const bgGrad = ctx.createRadialGradient(
+          this.canvas.width / 2, this.canvas.height / 2, 50,
+          this.canvas.width / 2, this.canvas.height / 2, this.canvas.width * 0.7
+        );
+        bgGrad.addColorStop(0, '#070b19');
+        bgGrad.addColorStop(1, '#02050e');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw background stars
+        this.drawBackgroundStars();
+
+        // Draw maze walls
+        this.drawMaze();
+
+        // Draw stars
+        this.drawStars();
+
+        // Draw particles
+        this.drawParticles();
+
+        // Draw rockets
+        this.rockets.forEach(rk => this.drawRocket(rk));
+
+        // Draw player (Nave Branca)
+        this.drawPlayer();
+
+        ctx.restore();
+      }
+
+      drawBackgroundStars() {
+        const ctx = this.ctx;
+        const now = performance.now() * 0.002;
+        this.bgStars.forEach(s => {
+          const alpha = s.alpha * (0.6 + 0.4 * Math.sin(now * s.blinkSpeed + s.x));
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      drawMaze() {
+        const ctx = this.ctx;
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const ch = MAZE_MAP[r][c];
+            const x = c * TILE_SIZE;
+            const y = r * TILE_SIZE;
+
+            if (ch === '#') {
+              // Wall block with neon borders
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+
+              ctx.strokeStyle = '#0284c7';
+              ctx.lineWidth = 1.2;
+              ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+
+              // Subtle inner glow dot
+              ctx.fillStyle = '#0369a1';
+              ctx.fillRect(x + TILE_SIZE / 2 - 1, y + TILE_SIZE / 2 - 1, 2, 2);
+            } else if (ch === '=') {
+              // Rocket base bay gate (pulsing pink laser barrier)
+              const pulse = Math.sin(performance.now() * 0.008) * 0.3 + 0.7;
+              ctx.strokeStyle = `rgba(236, 72, 153, ${pulse})`;
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(x, y + TILE_SIZE / 2);
+              ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE / 2);
+              ctx.stroke();
+            } else if (ch === 'T') {
+              // Warp tunnel indicators
+              const pulse = Math.sin(performance.now() * 0.006) * 0.4 + 0.6;
+              ctx.fillStyle = `rgba(56, 189, 248, ${pulse})`;
+              ctx.font = 'bold 10px monospace';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(c === 0 ? '◀' : '▶', x + TILE_SIZE / 2, y + TILE_SIZE / 2);
+            }
+          }
+        }
+      }
+
+      drawStars() {
+        const ctx = this.ctx;
+        const now = performance.now() * 0.005;
+
+        this.stars.forEach(s => {
+          if (s.isSuper) {
+            // Super Star (Pulsar)
+            const scale = 1 + 0.25 * Math.sin(now * 2 + s.r);
+            ctx.save();
+            ctx.translate(s.x, s.y);
+
+            // Glowing ring
+            ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 7 * scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Diamond star
+            ctx.fillStyle = '#fde047';
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 10;
+            this.drawStarShape(0, 0, 4, 6 * scale, 2.5 * scale);
+            ctx.restore();
+          } else {
+            // Normal Star
+            const pulse = 0.8 + 0.2 * Math.sin(now + s.r * 2 + s.c);
+            ctx.fillStyle = '#facc15';
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 4;
+            this.drawStarShape(s.x, s.y, 4, 3.5 * pulse, 1.5 * pulse);
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
+
+      drawStarShape(cx, cy, spikes, outerRadius, innerRadius) {
+        const ctx = this.ctx;
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        const step = Math.PI / spikes;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+          x = cx + Math.cos(rot) * outerRadius;
+          y = cy + Math.sin(rot) * outerRadius;
+          ctx.lineTo(x, y);
+          rot += step;
+
+          x = cx + Math.cos(rot) * innerRadius;
+          y = cy + Math.sin(rot) * innerRadius;
+          ctx.lineTo(x, y);
+          rot += step;
+        }
+        ctx.lineTo(cx, cy - outerRadius);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      drawPlayer() {
+        const p = this.player;
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+
+        // Invulnerability Shield
+        if (p.invulnerableTimer > 0) {
+          const shieldPulse = Math.sin(performance.now() * 0.02) * 0.3 + 0.7;
+          ctx.strokeStyle = `rgba(56, 189, 248, ${shieldPulse})`;
+          ctx.fillStyle = `rgba(56, 189, 248, ${shieldPulse * 0.2})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 13, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Spaceship Fuselage (Nave Branca)
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 8;
+
+        // Main white hull
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(9, 0);           // Nose
+        ctx.lineTo(-7, -7);        // Left wingtip
+        ctx.lineTo(-4, 0);          // Engine indent
+        ctx.lineTo(-7, 7);         // Right wingtip
+        ctx.closePath();
+        ctx.fill();
+
+        // Cockpit canopy (Cyan glass)
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 4, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.ellipse(1, -0.6, 2, 1, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Engine nozzle
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(-6, -2, 2, 4);
+
+        ctx.restore();
+      }
+
+      drawRocket(rk) {
+        const ctx = this.ctx;
+        const isFrightened = this.superTimer > 0;
+
+        ctx.save();
+        ctx.translate(rk.x, rk.y);
+        ctx.rotate(rk.angle);
+
+        // Rocket color
+        const mainColor = isFrightened ? '#38bdf8' : rk.color;
+        const finColor = isFrightened ? '#0284c7' : '#991b1b';
+
+        ctx.shadowColor = mainColor;
+        ctx.shadowBlur = 6;
+
+        // Rocket Body (Aerodynamic missile)
+        ctx.fillStyle = mainColor;
+        ctx.beginPath();
+        ctx.moveTo(9, 0);          // Nosecone
+        ctx.lineTo(2, -4);         // Upper shoulder
+        ctx.lineTo(-6, -4);        // Upper body
+        ctx.lineTo(-6, 4);         // Lower body
+        ctx.lineTo(2, 4);          // Lower shoulder
+        ctx.closePath();
+        ctx.fill();
+
+        // Rocket Fins
+        ctx.fillStyle = finColor;
+        // Upper fin
+        ctx.beginPath();
+        ctx.moveTo(-2, -4);
+        ctx.lineTo(-8, -8);
+        ctx.lineTo(-6, -4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Lower fin
+        ctx.beginPath();
+        ctx.moveTo(-2, 4);
+        ctx.lineTo(-8, 8);
+        ctx.lineTo(-6, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cockpit sensor / visor
+        ctx.fillStyle = isFrightened ? '#ffffff' : '#fef08a';
+        ctx.beginPath();
+        ctx.arc(1, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      drawParticles() {
+        const ctx = this.ctx;
+        this.particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+      }
+
+      /* ==========================================================================
+         GAME LOOP & INPUT EVENT HANDLING
+         ========================================================================== */
+      gameLoop(time) {
+        const dt = Math.min((time - this.lastTime) / 1000, 0.1);
+        this.lastTime = time;
+
+        this.update(dt);
+        this.draw();
+
+        requestAnimationFrame((t) => this.gameLoop(t));
+      }
+
+      setupEventListeners() {
+        // Keyboard inputs
+        window.addEventListener('keydown', (e) => {
+          sound.init();
+
+          switch (e.key) {
+            case 'ArrowUp':
+            case 'w':
+            case 'W':
+              this.setPlayerDirection(DIR.UP);
+              e.preventDefault();
+              break;
+            case 'ArrowDown':
+            case 's':
+            case 'S':
+              this.setPlayerDirection(DIR.DOWN);
+              e.preventDefault();
+              break;
+            case 'ArrowLeft':
+            case 'a':
+            case 'A':
+              this.setPlayerDirection(DIR.LEFT);
+              e.preventDefault();
+              break;
+            case 'ArrowRight':
+            case 'd':
+            case 'D':
+              this.setPlayerDirection(DIR.RIGHT);
+              e.preventDefault();
+              break;
+            case ' ':
+              if (this.state === 'START') this.startGame();
+              else if (this.state === 'GAMEOVER' || this.state === 'VICTORY') this.restartGame();
+              e.preventDefault();
+              break;
+            case 'p':
+            case 'P':
+              this.togglePause();
+              break;
+            case 'm':
+            case 'M':
+              this.toggleSound();
+              break;
+          }
+        });
+
+        // Touch / Click D-Pad buttons
+        const bindButton = (id, dir) => {
+          const btn = document.getElementById(id);
+          const handleAction = (e) => {
+            e.preventDefault();
+            sound.init();
+            if (this.state === 'START') this.startGame();
+            this.setPlayerDirection(dir);
+          };
+          btn.addEventListener('touchstart', handleAction, { passive: false });
+          btn.addEventListener('mousedown', handleAction);
+        };
+
+        bindButton('dpad-up', DIR.UP);
+        bindButton('dpad-down', DIR.DOWN);
+        bindButton('dpad-left', DIR.LEFT);
+        bindButton('dpad-right', DIR.RIGHT);
+
+        // UI Action Buttons
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+          sound.init();
+          this.startGame();
+        });
+
+        document.getElementById('btn-restart-game').addEventListener('click', () => {
+          sound.init();
+          this.restartGame();
+        });
+
+        document.getElementById('btn-play-again').addEventListener('click', () => {
+          sound.init();
+          this.restartGame();
+        });
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+          this.togglePause();
+        });
+
+        document.getElementById('btn-resume-game').addEventListener('click', () => {
+          this.togglePause();
+        });
+
+        document.getElementById('btn-audio').addEventListener('click', () => {
+          this.toggleSound();
+        });
+      }
+
+      setPlayerDirection(dir) {
+        if (this.state !== 'PLAYING') return;
+        this.player.nextDir = dir;
+      }
+
+      startGame() {
+        this.state = 'PLAYING';
+        document.getElementById('overlay-start').classList.add('hidden');
+        this.resetGame();
+      }
+
+      restartGame() {
+        document.getElementById('overlay-gameover').classList.add('hidden');
+        document.getElementById('overlay-victory').classList.add('hidden');
+        this.resetGame();
+        this.state = 'PLAYING';
+      }
+
+      togglePause() {
+        if (this.state === 'PLAYING') {
+          this.state = 'PAUSED';
+          document.getElementById('overlay-pause').classList.remove('hidden');
+        } else if (this.state === 'PAUSED') {
+          this.state = 'PLAYING';
+          document.getElementById('overlay-pause').classList.add('hidden');
+        }
+      }
+
+      toggleSound() {
+        const isMuted = sound.toggleMute();
+        document.getElementById('icon-sound-on').classList.toggle('hidden', isMuted);
+        document.getElementById('icon-sound-off').classList.toggle('hidden', !isMuted);
+      }
+    }
+
+    // Launch Game on Window Load
+    window.addEventListener('DOMContentLoaded', () => {
+      window.game = new GameEngine();
+    });
+  </script>
+</body>
+</html>
